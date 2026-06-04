@@ -98,9 +98,9 @@ body{font-family:'Manrope',sans-serif;color:var(--ink);
 .todo[data-pri="2"]{border-left-color:var(--pri2)}
 .todo[data-pri="3"]{border-left-color:var(--pri3)}
 .trow1{display:flex;align-items:flex-start;gap:14px}
-.circle{flex:0 0 auto;width:28px;height:28px;margin-top:1px;border-radius:50%;border:2px solid var(--faint);background:transparent;
+.circle{flex:0 0 auto;width:22px;height:22px;margin-top:3px;border-radius:50%;border:2px solid var(--faint);background:transparent;
   cursor:pointer;display:flex;align-items:center;justify-content:center;color:transparent;transition:all .18s;padding:0}
-.circle svg{width:15px;height:15px}
+.circle svg{width:12px;height:12px}
 .todo.done .circle{background:var(--done);border-color:var(--done);color:var(--done-ink)}
 .ttext{flex:1;border:none;background:transparent;color:var(--ink);font-family:'Manrope';font-weight:600;font-size:15px;
   padding:4px 0;min-width:0;transition:color .18s;line-height:1.42;resize:none;overflow:hidden;
@@ -110,7 +110,7 @@ body{font-family:'Manrope',sans-serif;color:var(--ink);
 .trash{flex:0 0 auto;margin-top:1px;border:none;background:transparent;color:var(--faint);cursor:pointer;padding:6px;border-radius:9px;display:flex;align-items:center;justify-content:center}
 .trash svg{width:17px;height:17px}
 .trash:active{color:#d06a6a}
-.tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding-left:42px}
+.tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding-left:36px}
 .flagbtn,.duebtn,.projpill{border:none;cursor:pointer;font-family:'Manrope';font-weight:700;font-size:11.5px;
   border-radius:9px;padding:8px 12px;display:flex;align-items:center;gap:6px;background:var(--field);color:var(--muted)}
 .flagbtn svg{width:14px;height:14px}
@@ -369,8 +369,10 @@ function refreshLists(){
 /* ===== TODO ACTIONS ===== */
 function quickAddTodo(){const inp=document.getElementById('todoInput');const t=inp.value.trim();
   const proj=(projFilter!=='all'&&projFilter!=='none')?projFilter:null;
-  data.todos.unshift({id:uid(),text:t,done:false,ts:Date.now(),project:proj,priority:0,due:''});save();inp.value='';render();
-  if(!t){const f=document.querySelector('#activeList .ttext');if(f)f.focus();}}
+  const nid=uid();
+  data.todos.unshift({id:nid,text:t,done:false,ts:Date.now(),project:proj,priority:0,due:''});save();inp.value='';render();
+  if(!t){const card=document.querySelector('#activeList .todo[data-id="'+nid+'"]');
+    if(card){const f=card.querySelector('.ttext');if(f)f.focus();card.scrollIntoView({behavior:'smooth',block:'center'});}}}
 function wireTodo(card){const t=data.todos.find(x=>x.id===card.dataset.id);if(!t)return;
   const ta=card.querySelector('.ttext'); autosize(ta);
   card.querySelector('.circle').addEventListener('click',()=>{t.done=!t.done;t.ts=Date.now();save();refreshLists();updateSub();});
