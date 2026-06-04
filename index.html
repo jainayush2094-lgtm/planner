@@ -107,7 +107,9 @@ body{font-family:'Manrope',sans-serif;color:var(--ink);
   white-space:pre-wrap;word-break:break-word;display:block}
 .ttext:focus{outline:none}
 .todo.done .ttext{color:var(--faint);text-decoration:line-through}
-.trash{flex:0 0 auto;margin-top:1px;border:none;background:transparent;color:var(--faint);cursor:pointer;padding:6px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.trash{flex:0 0 auto;margin-top:1px;border:none;background:transparent;color:var(--faint);cursor:pointer;padding:6px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:5px}
+.trash.armed{background:color-mix(in srgb,#d06a6a 16%,transparent);color:#d06a6a;padding:6px 10px;font-family:'Manrope';font-weight:700;font-size:11.5px}
+.trash.armed svg{width:14px;height:14px}
 .trash svg{width:17px;height:17px}
 .trash:active{color:#d06a6a}
 .tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding-left:36px}
@@ -377,7 +379,21 @@ function wireTodo(card){const t=data.todos.find(x=>x.id===card.dataset.id);if(!t
   const ta=card.querySelector('.ttext'); autosize(ta);
   card.querySelector('.circle').addEventListener('click',()=>{t.done=!t.done;t.ts=Date.now();save();refreshLists();updateSub();});
   ta.addEventListener('input',e=>{t.text=e.target.value;save();autosize(ta);setMaxHeights();});
-  card.querySelector('.trash').addEventListener('click',()=>{data.todos=data.todos.filter(x=>x.id!==t.id);save();card.style.opacity='0';card.style.transform='translateX(8px)';setTimeout(()=>{refreshLists();updateSub();},170);});
+  const trashBtn=card.querySelector('.trash'); let armTimer=null;
+  const disarm=()=>{clearTimeout(armTimer);trashBtn.classList.remove('armed');trashBtn.innerHTML=TRASH;};
+  trashBtn.addEventListener('click',()=>{
+    if(!trashBtn.classList.contains('armed')){
+      trashBtn.classList.add('armed');
+      trashBtn.innerHTML=TRASH+'<span>Delete?</span>';
+      clearTimeout(armTimer); armTimer=setTimeout(disarm,3500);
+      return;
+    }
+    clearTimeout(armTimer);
+    if(!confirm('Delete this task? This cannot be undone.')){disarm();return;}
+    data.todos=data.todos.filter(x=>x.id!==t.id);save();
+    card.style.opacity='0';card.style.transform='translateX(8px)';
+    setTimeout(()=>{refreshLists();updateSub();},170);
+  });
   card.querySelector('.flagbtn').addEventListener('click',()=>{t.priority=(t.priority+1)%4;save();refreshLists();});
   const dueBtn=card.querySelector('.duebtn'),dueHidden=card.querySelector('.duehidden');
   dueBtn.addEventListener('click',e=>{
