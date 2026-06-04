@@ -93,33 +93,35 @@ body{font-family:'Manrope',sans-serif;color:var(--ink);
 .gempty{font-size:13px;color:var(--faint);font-weight:500;padding:4px 6px 8px;font-style:italic}
 
 .todo{background:var(--card);border:1px solid var(--line);border-left:3px solid transparent;border-radius:15px;
-  padding:11px 11px 9px 13px;box-shadow:var(--shadow-sm);transition:opacity .2s,transform .2s}
+  padding:14px 14px 12px 15px;box-shadow:var(--shadow-sm);transition:opacity .2s,transform .2s}
 .todo[data-pri="1"]{border-left-color:var(--pri1)}
 .todo[data-pri="2"]{border-left-color:var(--pri2)}
 .todo[data-pri="3"]{border-left-color:var(--pri3)}
-.trow1{display:flex;align-items:center;gap:11px}
-.circle{flex:0 0 auto;width:25px;height:25px;border-radius:50%;border:2px solid var(--faint);background:transparent;
+.trow1{display:flex;align-items:flex-start;gap:14px}
+.circle{flex:0 0 auto;width:28px;height:28px;margin-top:1px;border-radius:50%;border:2px solid var(--faint);background:transparent;
   cursor:pointer;display:flex;align-items:center;justify-content:center;color:transparent;transition:all .18s;padding:0}
-.circle svg{width:14px;height:14px}
+.circle svg{width:15px;height:15px}
 .todo.done .circle{background:var(--done);border-color:var(--done);color:var(--done-ink)}
-.ttext{flex:1;border:none;background:transparent;color:var(--ink);font-family:'Manrope';font-weight:600;font-size:15px;padding:3px 0;min-width:0;transition:color .18s}
+.ttext{flex:1;border:none;background:transparent;color:var(--ink);font-family:'Manrope';font-weight:600;font-size:15px;
+  padding:4px 0;min-width:0;transition:color .18s;line-height:1.42;resize:none;overflow:hidden;
+  white-space:pre-wrap;word-break:break-word;display:block}
 .ttext:focus{outline:none}
 .todo.done .ttext{color:var(--faint);text-decoration:line-through}
-.trash{flex:0 0 auto;border:none;background:transparent;color:var(--faint);cursor:pointer;padding:5px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.trash{flex:0 0 auto;margin-top:1px;border:none;background:transparent;color:var(--faint);cursor:pointer;padding:6px;border-radius:9px;display:flex;align-items:center;justify-content:center}
 .trash svg{width:17px;height:17px}
 .trash:active{color:#d06a6a}
-.tmeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0 2px;padding-left:36px}
-.flagbtn,.duebtn,.projpill{border:none;cursor:pointer;font-family:'Manrope';font-weight:700;font-size:11px;
-  border-radius:8px;padding:5px 9px;display:flex;align-items:center;gap:5px;background:var(--field);color:var(--muted)}
-.flagbtn svg{width:13px;height:13px}
+.tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding-left:42px}
+.flagbtn,.duebtn,.projpill{border:none;cursor:pointer;font-family:'Manrope';font-weight:700;font-size:11.5px;
+  border-radius:9px;padding:8px 12px;display:flex;align-items:center;gap:6px;background:var(--field);color:var(--muted)}
+.flagbtn svg{width:14px;height:14px}
 .flagbtn[data-pri="1"]{color:var(--pri1)} .flagbtn[data-pri="2"]{color:var(--pri2)} .flagbtn[data-pri="3"]{color:var(--pri3)}
-.duebtn svg{width:12px;height:12px}
+.duebtn svg{width:13px;height:13px}
 .duebtn.overdue{color:var(--overdue);background:color-mix(in srgb,var(--overdue) 14%,transparent)}
 .duebtn.today{color:var(--today);background:color-mix(in srgb,var(--today) 16%,transparent)}
 .duebtn .x{margin-left:2px;opacity:.6;font-size:13px}
-.projpill{position:relative;padding-left:8px}
+.projpill{position:relative;padding-left:10px}
 .projpill .dot{width:8px;height:8px;border-radius:50%;background:var(--pc,var(--faint));flex:0 0 auto}
-.projpill select{border:none;background:transparent;color:var(--muted);font-family:'Manrope';font-weight:700;font-size:11px;cursor:pointer;appearance:none;-webkit-appearance:none;padding-right:2px}
+.projpill select{border:none;background:transparent;color:var(--muted);font-family:'Manrope';font-weight:700;font-size:11.5px;cursor:pointer;appearance:none;-webkit-appearance:none;padding-right:2px}
 .projpill select:focus{outline:none}
 
 .note{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 16px 12px;box-shadow:var(--shadow-sm);margin-bottom:13px;transition:opacity .2s,transform .2s}
@@ -273,7 +275,7 @@ function todoHTML(t){const di=dueInfo(t.due);
   return `<div class="todo ${t.done?'done':''}" data-id="${t.id}" data-pri="${t.priority}">
     <div class="trow1">
       <button class="circle">${CHK}</button>
-      <input class="ttext" value="${esc(t.text)}" placeholder="Untitled task">
+      <textarea class="ttext" rows="1" placeholder="Untitled task">${esc(t.text)}</textarea>
       <button class="trash">${TRASH}</button>
     </div>
     <div class="tmeta">
@@ -370,8 +372,9 @@ function quickAddTodo(){const inp=document.getElementById('todoInput');const t=i
   data.todos.unshift({id:uid(),text:t,done:false,ts:Date.now(),project:proj,priority:0,due:''});save();inp.value='';render();
   if(!t){const f=document.querySelector('#activeList .ttext');if(f)f.focus();}}
 function wireTodo(card){const t=data.todos.find(x=>x.id===card.dataset.id);if(!t)return;
+  const ta=card.querySelector('.ttext'); autosize(ta);
   card.querySelector('.circle').addEventListener('click',()=>{t.done=!t.done;t.ts=Date.now();save();refreshLists();updateSub();});
-  card.querySelector('.ttext').addEventListener('input',e=>{t.text=e.target.value;save();});
+  ta.addEventListener('input',e=>{t.text=e.target.value;save();autosize(ta);setMaxHeights();});
   card.querySelector('.trash').addEventListener('click',()=>{data.todos=data.todos.filter(x=>x.id!==t.id);save();card.style.opacity='0';card.style.transform='translateX(8px)';setTimeout(()=>{refreshLists();updateSub();},170);});
   card.querySelector('.flagbtn').addEventListener('click',()=>{t.priority=(t.priority+1)%4;save();refreshLists();});
   const dueBtn=card.querySelector('.duebtn'),dueHidden=card.querySelector('.duehidden');
