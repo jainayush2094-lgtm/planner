@@ -1,5 +1,5 @@
 // Service worker — caches the app so it opens offline and qualifies as installable.
-const CACHE = 'planner-todo-notes-v5';
+const CACHE = 'planner-todo-notes-v6';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

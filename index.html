@@ -113,11 +113,19 @@ body{font-family:'Manrope',sans-serif;color:var(--ink);
 .trash svg{width:17px;height:17px}
 .trash:active{color:#d06a6a}
 .tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding-left:36px}
-.flagbtn,.duebtn,.projpill{border:none;cursor:pointer;font-family:'Manrope';font-weight:700;font-size:11.5px;
+.flagbtn,.duebtn,.projpill,.rptbtn{border:none;cursor:pointer;font-family:'Manrope';font-weight:700;font-size:11.5px;
   border-radius:9px;padding:8px 12px;display:flex;align-items:center;gap:6px;background:var(--field);color:var(--muted)}
 .flagbtn svg{width:14px;height:14px}
 .flagbtn[data-pri="1"]{color:var(--pri1)} .flagbtn[data-pri="2"]{color:var(--pri2)} .flagbtn[data-pri="3"]{color:var(--pri3)}
 .duebtn svg{width:13px;height:13px}
+.rptbtn svg{width:13px;height:13px}
+.rptbtn.on{color:var(--pri1);background:color-mix(in srgb,var(--pri1) 13%,transparent)}
+.bkbanner{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 14px;border-radius:14px;
+  background:color-mix(in srgb,var(--overdue) 10%,var(--card));border:1px solid color-mix(in srgb,var(--overdue) 26%,transparent);box-shadow:var(--shadow-sm)}
+.bkbanner span{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.4}
+.bkbanner button{border:none;border-radius:9px;padding:8px 12px;font-family:'Manrope';font-weight:700;font-size:11.5px;cursor:pointer}
+.bkbanner .bk-now{background:var(--nav-bg);color:var(--nav-ink)}
+.bkbanner .bk-later{background:transparent;color:var(--muted)}
 .duebtn.overdue{color:var(--overdue);background:color-mix(in srgb,var(--overdue) 14%,transparent)}
 .duebtn.today{color:var(--today);background:color-mix(in srgb,var(--today) 16%,transparent)}
 .duebtn .x{margin-left:2px;opacity:.6;font-size:13px}
@@ -183,6 +191,7 @@ footer a{color:var(--muted);cursor:pointer;text-decoration:none;border-bottom:1p
   </nav>
   <main class="content">
     <header class="topbar"><h1 id="viewTitle">To-Do</h1><p id="viewSub"></p></header>
+    <div id="bkBanner" class="bkbanner hid"></div>
     <div id="dynamic"></div>
     <footer>
       <a onclick="exportData()">Backup</a> &nbsp;·&nbsp;
@@ -203,7 +212,7 @@ function loadData(){
     if(old&&Array.isArray(old.todos)&&Array.isArray(old.notes)){
       data={projects:[],todos:old.todos.map(migrateTodo),notes:old.notes.map(migrateNote)};save();return;}}catch(e){}
 }
-function migrateTodo(t){return {id:t.id||uid(),text:t.text||'',done:!!t.done,ts:t.ts||Date.now(),project:t.project||null,priority:t.priority||0,due:t.due||''};}
+function migrateTodo(t){return {id:t.id||uid(),text:t.text||'',done:!!t.done,ts:t.ts||Date.now(),project:t.project||null,priority:t.priority||0,due:t.due||'',repeat:t.repeat||''};}
 function migrateNote(n){return {id:n.id||uid(),title:n.title||'',body:n.body||'',ts:n.ts||Date.now(),project:n.project||null};}
 let view='todo', projFilter='all', query='';
 
@@ -230,7 +239,10 @@ const TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 const FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
 const CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
 const SEARCH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+const RPT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
 const PRI_LABEL=['Priority','Low','Medium','High'];
+const RPT_LABEL={'':'Repeat','daily':'Daily','weekly':'Weekly','monthly':'Monthly'};
+const RPT_CYCLE=['','daily','weekly','monthly'];
 
 /* ===== VIEW SWITCH ===== */
 function setView(v,btn){view=v;query='';
@@ -268,7 +280,23 @@ function matchQuery(text){return !query||text.toLowerCase().includes(query.toLow
 function sortActive(a,b){if(b.priority!==a.priority)return b.priority-a.priority;const ad=a.due||'9999-99',bd=b.due||'9999-99';if(ad!==bd)return ad<bd?-1:1;return b.ts-a.ts;}
 function dueInfo(due){if(!due)return null;const today=new Date();today.setHours(0,0,0,0);const d=new Date(due+'T00:00:00');
   const diff=Math.round((d-today)/86400000);let cls=diff<0?'overdue':(diff===0?'today':'');
-  let label=diff===0?'Today':(diff===1?'Tomorrow':(diff===-1?'Yesterday':niceDate(due)));return {cls,label};}
+  let label=diff===0?'Today':(diff===1?'Tomorrow':(diff===-1?'Yesterday':niceDate(due)));return {cls,label,diff};}
+function bucketOf(t){
+  if(!t.due) return 'nodate';
+  const di=dueInfo(t.due);
+  if(di.diff<0) return 'over';
+  if(di.diff===0) return 'today';
+  if(di.diff<=7) return 'week';
+  return 'later';
+}
+const GROUPS=[
+  {id:'g-over',  key:'over',  label:'Overdue',   hideEmpty:true},
+  {id:'g-today', key:'today', label:'Today',     hideEmpty:false},
+  {id:'g-week',  key:'week',  label:'This Week', hideEmpty:false},
+  {id:'g-later', key:'later', label:'Later',     hideEmpty:false},
+  {id:'g-nodate',key:'nodate',label:'No date',   hideEmpty:true},
+];
+let collapsed={'g-done':true}; // in-memory collapse state per group
 function projSelHTML(item){
   let opts=`<option value="" ${!item.project?'selected':''}>No project</option>`;
   data.projects.forEach(p=>{opts+=`<option value="${p.id}" ${item.project===p.id?'selected':''}>${esc(p.name||'Untitled')}</option>`;});
@@ -283,19 +311,33 @@ function todoHTML(t){const di=dueInfo(t.due);
     <div class="tmeta">
       <button class="flagbtn" data-pri="${t.priority}">${FLAG}<span>${PRI_LABEL[t.priority]}</span></button>
       <button class="duebtn ${di?di.cls:''}">${CAL}<span>${di?di.label:'Due'}</span>${t.due?'<span class="x">✕</span>':''}</button>
+      <button class="rptbtn ${t.repeat?'on':''}">${RPT}<span>${RPT_LABEL[t.repeat||'']}</span></button>
       ${projSelHTML(t)}
       <input type="date" class="duehidden hid" value="${esc(t.due)}">
     </div>
   </div>`;}
-function todoViewHTML(){
+function groupShellHTML(id,label,listHTML,count,emptyText){
+  const isCol=!!collapsed[id];
+  return `<div class="group ${isCol?'collapsed':''}" id="${id}"><button class="ghead" data-g="${id}"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>${label} <span class="gcount">${count}</span></button>
+      <div class="glist">${listHTML||'<div class="gempty">'+emptyText+'</div>'}</div></div>`;}
+function groupsHTML(){
   const all=data.todos.filter(t=>passFilter(t)&&matchQuery(t.text));
   const active=all.filter(t=>!t.done).sort(sortActive), done=all.filter(t=>t.done);
+  const byBucket={over:[],today:[],week:[],later:[],nodate:[]};
+  active.forEach(t=>byBucket[bucketOf(t)].push(t));
+  let s='';
+  GROUPS.forEach(g=>{
+    const rows=byBucket[g.key];
+    if(g.hideEmpty && !rows.length) return;
+    s+=groupShellHTML(g.id,g.label,rows.map(todoHTML).join(''),rows.length,'Nothing here yet.');
+  });
+  s+=groupShellHTML('g-done','Done',done.map(todoHTML).join(''),done.length,'No completed tasks.');
+  return s;
+}
+function todoViewHTML(){
   return chipsHTML()+searchHTML('Search tasks…')+
     `<div class="addrow"><button class="plus" id="addTodoBtn">+</button><input id="todoInput" placeholder="Add a to-do, press Enter to save" autocomplete="off"></div>
-    <div class="group" id="g-active"><button class="ghead" data-g="g-active"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>To-Do <span class="gcount">${active.length}</span></button>
-      <div class="glist" id="activeList">${active.length?active.map(todoHTML).join(''):'<div class="gempty">Nothing here yet.</div>'}</div></div>
-    <div class="group collapsed" id="g-done"><button class="ghead" data-g="g-done"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>Done <span class="gcount">${done.length}</span></button>
-      <div class="glist" id="doneList">${done.length?done.map(todoHTML).join(''):'<div class="gempty">No completed tasks.</div>'}</div></div>`;}
+    <div id="groupsArea">${groupsHTML()}</div>`;}
 
 /* ===== NOTES VIEW ===== */
 function noteHTML(n){
@@ -330,6 +372,14 @@ function projectsViewHTML(){
     <div id="projList">${data.projects.length?data.projects.map(projCardHTML).join(''):'<div class="viewempty"><b>No projects yet</b>Create one to group your tasks and notes.</div>'}</div>`;}
 
 /* ===== WIRING ===== */
+function wireGroups(){
+  document.querySelectorAll('.ghead').forEach(h=>h.addEventListener('click',()=>{
+    const g=document.getElementById(h.dataset.g);
+    g.classList.toggle('collapsed');
+    collapsed[h.dataset.g]=g.classList.contains('collapsed');
+    setMaxHeights();
+  }));
+}
 function wireView(){
   const pchips=document.getElementById('pchips');
   if(pchips)pchips.querySelectorAll('.pchip').forEach(c=>c.addEventListener('click',()=>{projFilter=c.dataset.pf;render();}));
@@ -337,7 +387,7 @@ function wireView(){
   if(si)si.addEventListener('input',e=>{query=e.target.value;const c=document.getElementById('searchClr');c.classList.toggle('show',!!query);refreshLists();});
   const sc=document.getElementById('searchClr');
   if(sc)sc.addEventListener('click',()=>{query='';render();});
-  document.querySelectorAll('.ghead').forEach(h=>h.addEventListener('click',()=>{document.getElementById(h.dataset.g).classList.toggle('collapsed');setMaxHeights();}));
+  wireGroups();
   if(view==='todo'){
     const inp=document.getElementById('todoInput');
     document.getElementById('addTodoBtn').addEventListener('click',quickAddTodo);
@@ -352,16 +402,17 @@ function wireView(){
   }
   setMaxHeights();}
 function refreshLists(){
-  if(view==='todo'){const dyn=document.getElementById('activeList').closest('#dynamic');}
-  // simplest: re-render the list area only
   if(view==='todo'){
-    const all=data.todos.filter(t=>passFilter(t)&&matchQuery(t.text));
-    const active=all.filter(t=>!t.done).sort(sortActive),done=all.filter(t=>t.done);
-    document.getElementById('activeList').innerHTML=active.length?active.map(todoHTML).join(''):'<div class="gempty">Nothing here yet.</div>';
-    document.getElementById('doneList').innerHTML=done.length?done.map(todoHTML).join(''):'<div class="gempty">No completed tasks.</div>';
-    document.querySelectorAll('#g-active .gcount')[0].textContent=active.length;
-    document.querySelectorAll('#g-done .gcount')[0].textContent=done.length;
-    document.querySelectorAll('.todo').forEach(wireTodo);setMaxHeights();
+    const area=document.getElementById('groupsArea');
+    area.innerHTML=groupsHTML();
+    area.querySelectorAll('.ghead').forEach(h=>h.addEventListener('click',()=>{
+      const g=document.getElementById(h.dataset.g);
+      g.classList.toggle('collapsed');
+      collapsed[h.dataset.g]=g.classList.contains('collapsed');
+      setMaxHeights();
+    }));
+    area.querySelectorAll('.todo').forEach(wireTodo);
+    setMaxHeights();
   } else if(view==='notes'){
     const list=data.notes.filter(n=>passFilter(n)&&matchQuery((n.title+' '+n.body)));
     document.getElementById('notesList').innerHTML=list.length?list.map(noteHTML).join(''):'<div class="viewempty"><b>No notes here</b>Tap “New note” to jot something down.</div>';
@@ -369,15 +420,34 @@ function refreshLists(){
   }}
 
 /* ===== TODO ACTIONS ===== */
+function nextDue(due,repeat){
+  const base=due?new Date(due+'T00:00:00'):new Date();
+  base.setHours(0,0,0,0);
+  // if the base date is in the past, advance from today so it doesn't instantly land in Overdue again
+  const today=new Date(); today.setHours(0,0,0,0);
+  const from=base<today?today:base;
+  const d=new Date(from);
+  if(repeat==='daily') d.setDate(d.getDate()+1);
+  else if(repeat==='weekly') d.setDate(d.getDate()+7);
+  else if(repeat==='monthly') d.setMonth(d.getMonth()+1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function quickAddTodo(){const inp=document.getElementById('todoInput');const t=inp.value.trim();
   const proj=(projFilter!=='all'&&projFilter!=='none')?projFilter:null;
   const nid=uid();
-  data.todos.unshift({id:nid,text:t,done:false,ts:Date.now(),project:proj,priority:0,due:''});save();inp.value='';render();
-  if(!t){const card=document.querySelector('#activeList .todo[data-id="'+nid+'"]');
+  data.todos.unshift({id:nid,text:t,done:false,ts:Date.now(),project:proj,priority:0,due:'',repeat:''});save();inp.value='';render();
+  if(!t){const card=document.querySelector('#groupsArea .todo[data-id="'+nid+'"]');
     if(card){const f=card.querySelector('.ttext');if(f)f.focus();card.scrollIntoView({behavior:'smooth',block:'center'});}}}
 function wireTodo(card){const t=data.todos.find(x=>x.id===card.dataset.id);if(!t)return;
   const ta=card.querySelector('.ttext'); autosize(ta);
-  card.querySelector('.circle').addEventListener('click',()=>{t.done=!t.done;t.ts=Date.now();save();refreshLists();updateSub();});
+  card.querySelector('.circle').addEventListener('click',()=>{
+    t.done=!t.done;t.ts=Date.now();
+    // recurring: completing a repeating task spawns the next occurrence
+    if(t.done && t.repeat){
+      data.todos.unshift({id:uid(),text:t.text,done:false,ts:Date.now(),project:t.project,
+        priority:t.priority,due:nextDue(t.due,t.repeat),repeat:t.repeat});
+    }
+    save();refreshLists();updateSub();});
   ta.addEventListener('input',e=>{t.text=e.target.value;save();autosize(ta);setMaxHeights();});
   const trashBtn=card.querySelector('.trash'); let armTimer=null;
   const disarm=()=>{clearTimeout(armTimer);trashBtn.classList.remove('armed');trashBtn.innerHTML=TRASH;};
@@ -395,6 +465,9 @@ function wireTodo(card){const t=data.todos.find(x=>x.id===card.dataset.id);if(!t
     setTimeout(()=>{refreshLists();updateSub();},170);
   });
   card.querySelector('.flagbtn').addEventListener('click',()=>{t.priority=(t.priority+1)%4;save();refreshLists();});
+  card.querySelector('.rptbtn').addEventListener('click',()=>{
+    const i=RPT_CYCLE.indexOf(t.repeat||'');
+    t.repeat=RPT_CYCLE[(i+1)%RPT_CYCLE.length];save();refreshLists();});
   const dueBtn=card.querySelector('.duebtn'),dueHidden=card.querySelector('.duehidden');
   dueBtn.addEventListener('click',e=>{
     if(e.target.classList.contains('x')){t.due='';save();refreshLists();return;}
@@ -435,8 +508,26 @@ function setMaxHeights(){document.querySelectorAll('.group').forEach(g=>{const l
 function fabAction(){if(view==='todo'){quickAddTodo();}else if(view==='notes'){addNote();}else{addProject();}}
 
 /* ===== BACKUP / RESTORE ===== */
+const BK_LAST='planner_lastbackup', BK_SNOOZE='planner_bksnooze';
+function checkBackupReminder(){
+  if((data.todos.length+data.notes.length)<5) return;
+  let last=0,snooze=0;
+  try{last=parseInt(localStorage.getItem(BK_LAST)||'0');}catch(e){}
+  try{snooze=parseInt(localStorage.getItem(BK_SNOOZE)||'0');}catch(e){}
+  if(snooze && Date.now()<snooze) return;
+  if(last && (Date.now()-last)/86400000<10) return;
+  const banner=document.getElementById('bkBanner');
+  const msg=last?('Last backup was '+Math.floor((Date.now()-last)/86400000)+' days ago.'):'Your tasks live only on this device.';
+  banner.innerHTML=`<span>${msg} A cleared browser wipes them — save a backup file.</span>
+    <button class="bk-now" onclick="exportData();hideBackupBanner()">Back up</button>
+    <button class="bk-later" onclick="snoozeBackup()">Later</button>`;
+  banner.classList.remove('hid');
+}
+function hideBackupBanner(){document.getElementById('bkBanner').classList.add('hid');}
+function snoozeBackup(){try{localStorage.setItem(BK_SNOOZE,String(Date.now()+2*86400000));}catch(e){} hideBackupBanner();}
 function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='planner-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);}
+  a.href=URL.createObjectURL(blob);a.download='planner-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
+  try{localStorage.setItem(BK_LAST,String(Date.now()));}catch(e){}}
 function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const d=JSON.parse(r.result);
     if(d&&Array.isArray(d.todos)&&Array.isArray(d.notes)){if(!confirm('Replace current data with backup?'))return;
@@ -448,6 +539,7 @@ function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new File
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 loadData();
 render();
+checkBackupReminder();
 </script>
 </body>
 </html>
